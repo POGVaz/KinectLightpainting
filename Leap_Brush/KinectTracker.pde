@@ -8,13 +8,14 @@
 class KinectTracker {
 
   // Depth threshold
-  int threshold = 400;
+  int threshold = 600;
 
   // Raw location
   PVector loc;
 
   // Interpolated location
   PVector lerpedLoc;
+  
 
   // Depth data
   int[] depth;

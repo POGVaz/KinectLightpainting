@@ -19,9 +19,14 @@ boolean mostra = true;
 
 // Angle for rotation
 float a = 0;
+int birl = 0;
 
 // We'll use a lookup table so that we don't have to repeat the math over and over
 float[] depthLookUp = new float[2048];
+
+float[] desenho_X = new float[512];
+float[] desenho_Y = new float[512];
+float[] desenho_Z = new float[512];
 
 void setup() {
   // Rendering in P3D
@@ -53,6 +58,10 @@ void draw() {
 
   // We're just going to calculate and draw every 4th pixel (equivalent of 160x120)
   int skip = 2;
+  float sumX = 0;
+  float sumY = 0;
+  float sumZ = 0;
+  float count = 0;
 
   // Translate and rotate
   translate(width/2, height/2, -50);
@@ -65,31 +74,62 @@ void draw() {
       // Convert kinect data to world xyz coordinate
       int rawDepth = depth[offset];
       PVector v = depthToWorld(x, y, rawDepth);
-
+      strokeWeight(1);
       stroke(255);
       pushMatrix();
       // Scale up by 200
       float factor = 200;
       translate(v.x*factor, v.y*factor, factor-v.z*factor);
       // Draw a point
+      point(0, 0);
       if (rawDepth < tracker.threshold) {
-        point(0, 0);
+        sumX = sumX+v.x*factor;
+        sumY = sumY+v.y*factor;
+        sumZ = sumZ+factor-v.z*factor;
+        count = count + 1;
       }
       popMatrix();
     }
   }
   
-  // Let's draw the raw location
-  PVector v1 = tracker.getPos();
-  fill(50, 100, 250, 200);
-  noStroke();
-  ellipse(v1.x, v1.y, 20, 20);
-
-  // Let's draw the "lerped" location
-  PVector v2 = tracker.getLerpedPos();
-  fill(100, 250, 50, 200);
-  noStroke();
-  ellipse(v2.x, v2.y, 20, 20);
+  
+    
+    
+  //PVector v2 = tracker.getLerpedPos();
+  //float factor = 2000;
+  //int offset = int(v2.x) + int(v2.y*kinect.width);
+  //int rawDepth = depth[offset];
+  //PVector v = depthToWorld(int(v2.x), int(v2.y), rawDepth);
+  //pushMatrix();
+  //translate(v.x*factor,v.y*factor,factor - v.z*factor);
+  //sphere(28);
+  //popMatrix();
+  
+  
+  desenho_X[birl] = sumX/count;
+  desenho_Y[birl] = sumY/count;
+  desenho_Z[birl] = sumZ/count;
+  if (birl == 511) {
+      birl = 0;
+  }
+  else{
+       birl++;
+     }
+  
+  stroke(random(0, 255), random(0, 255), random(0, 255));
+  strokeWeight(10);
+  beginShape();
+  for(int i =0;i<birl;i++){
+    curveVertex(desenho_X[i],desenho_Y[i], desenho_Z[i]);
+    //fill(random(0, 255), random(0, 255), random(0, 255), 100);
+    //ellipse(desenho_X[i], desenho_Y[i], 50, 50);
+    //pushMatrix();
+    //translate(desenho_X[i],desenho_Y[i], desenho_Z[i]);
+    //box(28);
+    //popMatrix();
+  }
+  endShape();
+  
 
 }
 
@@ -128,6 +168,8 @@ void keyPressed() {
       tracker.setThreshold(t);
     } else if (keyCode == ALT) {
       mostra = !mostra;
+    } else if (keyCode == LEFT) {
+      birl = 0;
     }
   }
 }
