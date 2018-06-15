@@ -33,6 +33,7 @@ void setup() {
   size(800, 600, P3D);
   kinect = new Kinect(this);
   kinect.initDepth();
+  kinect.setTilt(15);
   
   tracker = new KinectTracker();
 
@@ -52,6 +53,8 @@ void draw() {
   tracker.track();
   // Show the image
   tracker.display(mostra);
+  //Inicia o video de kinect
+  kinect.initVideo();
 
   // Get the raw depth as array of integers
   int[] depth = kinect.getRawDepth();
@@ -62,6 +65,9 @@ void draw() {
   float sumY = 0;
   float sumZ = 0;
   float count = 0;
+  
+  float sumX2 = 0;
+  float sumY2 = 0;
 
   // Translate and rotate
   translate(width/2, height/2, -50);
@@ -78,23 +84,60 @@ void draw() {
       stroke(255);
       pushMatrix();
       // Scale up by 200
-      float factor = 200;
-      translate(v.x*factor, v.y*factor, factor-v.z*factor);
+      float factor = 2000;
+      translate(v.x*factor, v.y*factor, 5*factor-v.z*5*factor);
       // Draw a point
-      point(0, 0);
+      //point(0, 0);
       if (rawDepth < tracker.threshold) {
         sumX = sumX+v.x*factor;
         sumY = sumY+v.y*factor;
         sumZ = sumZ+factor-v.z*factor;
+        
+        sumX2 = sumX2 + x;
+        sumY2 = sumY2 + y;
+        
         count = count + 1;
       }
       popMatrix();
     }
   }
   
+  PImage imagem = kinect.getVideoImage();
+  PImage recorte = imagem.get(int(sumX2/count)-25, int((sumY2/count) + 15)-25, 50, 50);
+  recorte.loadPixels();
+  int dimension = recorte.width * recorte.height;
   
+  int countR = 0;
+  
+  //boolean flagR = false;
+  
+  for (int i = 0; i < dimension; i += 2) {
+    float r = red(recorte.pixels[i]);
+    float g = green(recorte.pixels[i]);
+    float b = blue(recorte.pixels[i]);
     
-    
+    if(r > b && r > g){
+      countR = countR + 1;
+    }
+    //else print("O");
+    //else if (g > 200){
+      //print("Verde!");
+    //}
+    //else if (b > 200) {
+      //print("Azul!");
+    //}
+    //else {
+      //print("nada!");
+    //}
+  }
+  if (countR/dimension > 0.3){
+    print("Vermelho!");
+  }
+  image(imagem, 0, 0);
+  
+  //if (flagR) print("Vermelho!");
+  //else print("nada!");
+  
   //PVector v2 = tracker.getLerpedPos();
   //float factor = 2000;
   //int offset = int(v2.x) + int(v2.y*kinect.width);
@@ -106,9 +149,13 @@ void draw() {
   //popMatrix();
   
   
+  
+  translate(0,0);
   desenho_X[birl] = sumX/count;
   desenho_Y[birl] = sumY/count;
   desenho_Z[birl] = sumZ/count;
+  
+  
   if (birl == 511) {
       birl = 0;
   }
@@ -130,7 +177,6 @@ void draw() {
   }
   endShape();
   
-
 }
 
 // These functions come from: http://graphics.stanford.edu/~mdfisher/Kinect.html
