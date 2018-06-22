@@ -15,7 +15,11 @@ Kinect kinect;
 
 PeasyCam cam;
 
-boolean mostra = true;
+boolean mostra = false;
+
+boolean desenha = true;
+
+final int MAX_POINTS = 4095;  
 
 // Angle for rotation
 float a = 0;
@@ -24,13 +28,18 @@ int birl = 0;
 // We'll use a lookup table so that we don't have to repeat the math over and over
 float[] depthLookUp = new float[2048];
 
-float[] desenho_X = new float[512];
-float[] desenho_Y = new float[512];
-float[] desenho_Z = new float[512];
+float[] desenho_X = new float[MAX_POINTS];
+float[] desenho_Y = new float[MAX_POINTS];
+float[] desenho_Z = new float[MAX_POINTS];
+int[] cor       = new int[MAX_POINTS];
+int[] traco       = new int[MAX_POINTS];
+int traco1 = 0;
+
+int[] stops = new int[MAX_POINTS];
 
 void setup() {
   // Rendering in P3D
-  size(800, 600, P3D);
+  size(1024, 768, P3D);
   kinect = new Kinect(this);
   kinect.initDepth();
   kinect.setTilt(15);
@@ -70,7 +79,7 @@ void draw() {
   float sumY2 = 0;
 
   // Translate and rotate
-  translate(width/2, height/2, -50);
+  translate(0, 0, -50);
   rotateY(a);
 
   for (int x = 0; x < kinect.width; x += skip) {
@@ -84,14 +93,14 @@ void draw() {
       stroke(255);
       pushMatrix();
       // Scale up by 200
-      float factor = 2000;
+      float factor = 500;
       translate(v.x*factor, v.y*factor, 5*factor-v.z*5*factor);
       // Draw a point
-      //point(0, 0);
       if (rawDepth < tracker.threshold) {
+        point(0, 0);
         sumX = sumX+v.x*factor;
         sumY = sumY+v.y*factor;
-        sumZ = sumZ+factor-v.z*factor;
+        sumZ = sumZ+5*factor-v.z*5*factor;
         
         sumX2 = sumX2 + x;
         sumY2 = sumY2 + y;
@@ -102,80 +111,74 @@ void draw() {
     }
   }
   
+   //Variáveis de suporte, para debug e calibar a posição do cursor.
   PImage imagem = kinect.getVideoImage();
   PImage recorte = imagem.get(int(sumX2/count)-25, int((sumY2/count) + 15)-25, 50, 50);
   recorte.loadPixels();
   int dimension = recorte.width * recorte.height;
   
-  int countR = 0;
-  
-  //boolean flagR = false;
-  
-  for (int i = 0; i < dimension; i += 2) {
-    float r = red(recorte.pixels[i]);
-    float g = green(recorte.pixels[i]);
-    float b = blue(recorte.pixels[i]);
-    
-    if(r > b && r > g){
-      countR = countR + 1;
-    }
-    //else print("O");
-    //else if (g > 200){
-      //print("Verde!");
-    //}
-    //else if (b > 200) {
-      //print("Azul!");
-    //}
-    //else {
-      //print("nada!");
-    //}
-  }
-  if (countR/dimension > 0.3){
-    print("Vermelho!");
-  }
   image(imagem, 0, 0);
   
-  //if (flagR) print("Vermelho!");
-  //else print("nada!");
+  float r = 0;
+  float g = 0;
+  float b = 0;
   
-  //PVector v2 = tracker.getLerpedPos();
-  //float factor = 2000;
-  //int offset = int(v2.x) + int(v2.y*kinect.width);
-  //int rawDepth = depth[offset];
-  //PVector v = depthToWorld(int(v2.x), int(v2.y), rawDepth);
-  //pushMatrix();
-  //translate(v.x*factor,v.y*factor,factor - v.z*factor);
-  //sphere(28);
-  //popMatrix();
-  
+  for (int i = 0; i < dimension; i += 2) {
+    r += red(recorte.pixels[i]);
+    g += green(recorte.pixels[i]);
+    b += blue(recorte.pixels[i]);
+  }
+
+  if (desenha) {
+    desenho_X[birl] = sumX/count;
+    desenho_Y[birl] = sumY/count;
+    desenho_Z[birl] = sumZ/count;
+    
+    if (birl == MAX_POINTS-1) {
+      birl = 0;
+    }
+    else{
+      birl++;
+    }
+    
+    if (r > g && r > b){
+      cor[birl] = 1;
+    }
+    else if (g > b){
+      cor[birl] = 2;
+    }
+    else {
+      cor[birl] = 3;
+    }
+  }
+traco[birl] = traco1;  
   
   
   translate(0,0);
-  desenho_X[birl] = sumX/count;
-  desenho_Y[birl] = sumY/count;
-  desenho_Z[birl] = sumZ/count;
+  noFill();
   
-  
-  if (birl == 511) {
-      birl = 0;
-  }
-  else{
-       birl++;
-     }
-  
-  stroke(random(0, 255), random(0, 255), random(0, 255));
-  strokeWeight(10);
   beginShape();
-  for(int i =0;i<birl;i++){
-    curveVertex(desenho_X[i],desenho_Y[i], desenho_Z[i]);
-    //fill(random(0, 255), random(0, 255), random(0, 255), 100);
-    //ellipse(desenho_X[i], desenho_Y[i], 50, 50);
-    //pushMatrix();
-    //translate(desenho_X[i],desenho_Y[i], desenho_Z[i]);
-    //box(28);
-    //popMatrix();
-  }
-  endShape();
+    for(int i = 0; i<birl; i++){
+      strokeWeight(traco[i]);
+      if (cor[i] == 1) {
+        stroke(255, 0, 0);
+      }
+      else if (cor[i] == 2) {
+        stroke(0, 255, 0);
+      }
+      else if (cor[i] == 3) {
+        stroke(0, 0, 255);
+      }
+      curveVertex(desenho_X[i],desenho_Y[i], desenho_Z[i]);
+      for (int j=0; j<stops.length; j++){
+        if (stops[j] == i) {
+          endShape();
+          beginShape();
+        }
+      }
+    }
+    endShape();
+  
   
 }
 
@@ -202,7 +205,7 @@ PVector depthToWorld(int x, int y, int depthValue) {
   return result;
 }
 
-// Adjust the threshold with key presses
+// Ajuste de parâmetros com o pressinar de teclas.
 void keyPressed() {
   int t = tracker.getThreshold();
   if (key == CODED) {
@@ -216,6 +219,16 @@ void keyPressed() {
       mostra = !mostra;
     } else if (keyCode == LEFT) {
       birl = 0;
+    }
+    else if (keyCode == RIGHT){
+       //desenha = !desenha;
+       //append(stops, birl);
+        if (traco1 == 0) {
+          traco1 = 5;
+        }
+        else{
+          traco1 = 0;
+        }
     }
   }
 }
